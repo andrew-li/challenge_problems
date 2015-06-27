@@ -34,6 +34,13 @@ Graph.prototype.removeDirectedEdge = function(srcNode, destNode) {
 };
 
 
+//dijkstra's
+Graph.prototype.shortestPath = function(srcNode, destNode) {
+  
+};
+
+
+
 
 
 
@@ -43,9 +50,9 @@ var swap = function(arr, i, j) {
   arr[j] = temp;
 };
 
+//priority queue built off binary heap (not the most efficient implementation)
 var PriorityQueue = function(comparator) {
-  this.storage = [];
-  this.storage.push(null);
+  this.heap = [];
   this.comparator = comparator;
   if(typeof(this.comparator) !== "function")
   {
@@ -65,33 +72,61 @@ var PriorityQueue = function(comparator) {
   }
 };
 
-PriorityQueue.prototype.heapify = function(index) {
+PriorityQueue.prototype.heapifyUp = function(index) {
   while(Math.floor(index / 2) > 0)    
   {
-    if(this.comparator(this.storage[index], this.storage[Math.floor(index / 2)]) < 0)
+    if(this.comparator(this.heap[index - 1], this.heap[Math.floor(index / 2) - 1]) < 0)
     {
-      swap(this.storage, index, Math.floor(index / 2));    
+      swap(this.heap, index - 1, Math.floor(index / 2) - 1);    
     }
     
     index = Math.floor(index / 2); 
   }
+};
+
+PriorityQueue.prototype.heapifyDown = function(index) {
+  var childIndex;
+  while(index * 2 <= this.heap.length)
+  {
+    childIndex = (2 * index + 1 <= this.heap.length && this.comparator(this.heap[2 * index], this.heap[2 * index - 1]) < 0) 
+      ? 2 * index + 1 
+      : 2 * index;   
+    if(this.comparator(this.heap[childIndex - 1], this.heap[index - 1]) < 0)
+    {
+      swap(this.heap, childIndex - 1, index - 1);
+    }
     
+    index = childIndex; 
+  }
 };
 
 PriorityQueue.prototype.push = function(value) {
-  this.storage[this.storage.length] = value;
-  console.log("before: ", this.storage);
-  this.heapify(this.storage.length - 1);
-  console.log("after: ", this.storage);
+  this.heap[this.heap.length] = value;
+  this.heapifyUp(this.heap.length);
 };
 
 PriorityQueue.prototype.top = function() {
-  return this.storage[1];
+  return (this.heap.length > 0) ? this.heap[0] : null;
 };
 
 PriorityQueue.prototype.pop = function() {
+  if(this.heap.length > 0)
+  {  
+    swap(this.heap, 0, this.heap.length - 1);
+    var temp = this.heap.pop();
+    this.heapifyDown(1);
+    return temp;
+  }
   
+  return null;
 };
+
+
+
+
+
+
+
 
 
 
