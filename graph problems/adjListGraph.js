@@ -1,6 +1,71 @@
 
 
 
+
+
+var Queue = function(){
+  this.storage = {};
+  this.sizep = 0;
+  this.pushIndex = 0;
+  this.popIndex = 0;
+};
+
+Queue.prototype.enqueue = function(value){
+  this.storage[this.pushIndex] = value;
+  this.sizep++;
+  this.pushIndex++;
+};
+
+Queue.prototype.dequeue = function(){
+  if(this.sizep>0){
+    var temp = this.storage[this.popIndex];
+    delete this.storage[this.popIndex];
+    this.popIndex++;
+    this.sizep--;
+    return temp;
+  }
+
+};
+
+Queue.prototype.size = function(){
+  return this.sizep;
+};
+
+
+
+
+
+
+var Stack = function() {
+  this.storage = {};
+  this.sizep = 0;
+};
+
+Stack.prototype.push = function(value){
+  this.storage[this.sizep] = value;
+  ++this.sizep;
+};
+
+Stack.prototype.pop = function(){
+  if(this.sizep >= 1)
+  {
+    var temp = this.storage[this.sizep - 1];
+    delete this.storage[this.sizep - 1];
+    --this.sizep;
+    return temp;
+  }
+
+  return undefined;
+};
+
+Stack.prototype.size = function(){
+  return this.sizep;
+};
+
+
+
+
+
 var swap = function(arr, i, j) {
   var temp = arr[i];
   arr[i] = arr[j];
@@ -297,6 +362,234 @@ Graph.prototype.aStarSearch = function(srcNode, destNode, heuristic) {
 };
 
 
+//prim's algorithm for finding the minimum spanning tree of a graph
+Graph.prototype.primsMinimumSpanningTreeAlgorithm = function() {
+  var mst = new Graph();
+ 
+  var distances = {};
+  var prevNodes= {};
+
+  var pq = new PriorityQueue();
+
+  var nodeKey;
+  var first = true;
+  for(nodeKey in this.adjList)
+  {
+    if(first !== true)
+    {
+      distances[nodeKey] = Infinity;
+    }
+    else
+    {
+      distances[nodeKey] = 0;
+      prevNodes[nodeKey] = undefined;
+      first = false;
+    }
+    pq.push(nodeKey, distances[nodeKey]);
+  }
+
+  var newNode;
+  var neighborNodeKey; 
+  var newDistance;
+  while(pq.isEmpty() === false)
+  {
+    nodeKey = pq.pop().key;
+    newNode = new AdjListGraphNode(nodeKey, this.adjList[nodeKey].value);
+    mst.addNode(newNode);
+    if(prevNodes[nodeKey] !== undefined)
+    {
+      mst.addBidirectionalEdge(newNode, prevNodes[nodeKey], distances[nodeKey]);
+    }
+//can actually break here if the total number of nodes from the original graph is added to the mst 
+//since every path leading to the last node will have already been explored
+    for(neighborNodeKey in this.adjList[nodeKey].dest)
+    {
+      newDistance = this.adjList[nodeKey].dest[neighborNodeKey];
+      if(newDistance < distances[neighborNodeKey])
+      {
+        distances[neighborNodeKey] = newDistance;
+        prevNodes[neighborNodeKey] = newNode;
+        pq.updateValueAtKey(neighborNodeKey, function() {
+          return newDistance;
+        });
+      }
+    }
+  }
+
+  return mst;
+};
+
+
+Graph.prototype.breadthFirstSearch = function(srcNode, destNode) {
+
+  var prevNodeKeys = {};
+
+  var q = new Queue();
+
+  q.enqueue(srcNode.key);
+
+  prevNodeKeys[srcNode.key] = undefined;
+
+  var nodeKey;
+  var neighborNodeKey; 
+  var path = [];
+  while(q.size() > 0)
+  {
+    nodeKey = q.dequeue();
+    if(destNode !== undefined && nodeKey === destNode.key)
+    {
+      var pathNodeKey = prevNodeKeys[destNode.key];
+      while(pathNodeKey !== undefined)
+      {
+        path.push(this.adjList[pathNodeKey]);
+        pathNodeKey = prevNodeKeys[pathNodeKey];
+      }
+      path.reverse();
+      return path;
+    }
+    for(neighborNodeKey in this.adjList[nodeKey].dest)
+    {
+      if(prevNodeKeys.hasOwnProperty(neighborNodeKey) === false)
+      {
+        q.enqueue(neighborNodeKey);
+        prevNodeKeys[neighborNodeKey] = nodeKey;
+      }
+    }
+  }
+
+  return prevNodeKeys;
+
+};
+
+Graph.prototype.depthFirstSearch = function(srcNode, destNode) {
+
+  var prevNodeKeys = {};
+
+  var s = new Stack();
+
+  s.push(srcNode.key);
+
+  prevNodeKeys[srcNode.key] = undefined;
+
+  var nodeKey;
+  var neighborNodeKey; 
+  var path = [];
+  while(s.size() > 0)
+  {
+    nodeKey = s.pop();
+    if(destNode !== undefined && nodeKey === destNode.key)
+    {
+      var pathNodeKey = prevNodeKeys[destNode.key];
+      while(pathNodeKey !== undefined)
+      {
+        path.push(this.adjList[pathNodeKey]);
+        pathNodeKey = prevNodeKeys[pathNodeKey];
+      }
+      path.reverse();
+      return path;
+    }
+    for(neighborNodeKey in this.adjList[nodeKey].dest)
+    {
+      if(prevNodeKeys.hasOwnProperty(neighborNodeKey) === false)
+      {
+        s.push(neighborNodeKey);
+        prevNodeKeys[neighborNodeKey] = nodeKey;
+      }
+    }
+  }
+
+  return prevNodeKeys;
+
+};
+
+Graph.prototype.iterativeDeepeningDepthFirstSearch = function(srcNode, destNode) {
+
+  var prevNodeKeysToReturn = {}; //will contain information to create a path and also keep track of visited nodes
+  
+  var found = false; //flag to indicate if the dest node has been found
+
+  var graph = this;
+  var depthLimitedSearch = function(maxDepth) {
+
+    var depth = 1;
+    var updated = false; //flag to indicate if something in prevNodeKeysToReturn has been updated 
+
+    var prevNodeKeys = {}; //will be used to track if a node has been visited in the current DLS call
+    prevNodeKeys[srcNode.key] = undefined;
+
+    var s = new Stack();
+    s.push({key : srcNode.key, depth : depth});
+
+    var stackItem;
+    var nodeKey;
+    var neighborNodeKey; 
+    while(s.size() > 0)
+    {
+      stackItem = s.pop();
+      nodeKey = stackItem.key;
+      depth = stackItem.depth;
+      
+      if(depth === maxDepth)
+      {
+        if(prevNodeKeysToReturn.hasOwnProperty(nodeKey) === false)  
+        {
+          prevNodeKeysToReturn[nodeKey] = prevNodeKeys[nodeKey];
+          if(destNode !== undefined && nodeKey === destNode.key)
+          {
+            found = true;
+            return false; //stop if destination node has been found
+          }
+          updated = true; 
+        }
+        continue;     
+      }
+      
+      for(neighborNodeKey in graph.adjList[nodeKey].dest)
+      {
+        if(prevNodeKeys.hasOwnProperty(neighborNodeKey) === false)
+        {          
+          s.push({key : neighborNodeKey, depth : depth + 1});     
+          prevNodeKeys[neighborNodeKey] = nodeKey;
+        }
+      }
+    }
+
+    return updated;
+  };
+
+
+  //keep performing DLS until nothing in prevNodeKeysToReturn gets updated
+  //  if nothing in prevNodeKeysToReturn gets updated, then that means that every node in the graph has been visited
+  //  and we can stop traversing the graph
+  //alternatively, stop if the dest node has been found 
+  //  (updated will be false if the dest node has been found, even though prevNodeKeysToReturn will have been updated)
+  var i = 0;
+  var updated = true;
+  while(updated === true)
+  {
+    ++i;
+    updated = depthLimitedSearch(i);
+  }
+
+  if(found === true)
+  {
+    var path = [];
+    var pathNodeKey = prevNodeKeysToReturn[destNode.key];
+    while(pathNodeKey !== undefined)
+    {
+      path.push(this.adjList[pathNodeKey]);
+      pathNodeKey = prevNodeKeysToReturn[pathNodeKey];
+    }
+    path.reverse();
+    return path;
+  }
+  else
+  {
+    return prevNodeKeysToReturn;
+  }
+
+};
+
 
 
 
@@ -416,7 +709,7 @@ for(var nodeKey in grid.adjList)
     --newCoordinate[0];
     if(newCoordinate[0] >= 0 && grid.adjList[newCoordinate.toString()].value !== "XX")
     {
-      grid.addBidirectionalEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
+      grid.addDirectedEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
     }
 
     //create connection to the bottom if the square to the bottom is valid
@@ -424,7 +717,7 @@ for(var nodeKey in grid.adjList)
     ++newCoordinate[0];
     if(newCoordinate[0] < numRows && grid.adjList[newCoordinate.toString()].value !== "XX")
     {
-      grid.addBidirectionalEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
+      grid.addDirectedEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
     }
 
     //create connection to the left if the square to the left is valid
@@ -432,7 +725,7 @@ for(var nodeKey in grid.adjList)
     --newCoordinate[1];
     if(newCoordinate[1] >= 0 && grid.adjList[newCoordinate.toString()].value !== "XX")
     {
-      grid.addBidirectionalEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
+      grid.addDirectedEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
     }
 
     //create connection to the right if the square to the right is valid
@@ -440,7 +733,7 @@ for(var nodeKey in grid.adjList)
     ++newCoordinate[1];
     if(newCoordinate[1] < numCols && grid.adjList[newCoordinate.toString()].value !== "XX")
     {
-      grid.addBidirectionalEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
+      grid.addDirectedEdge(grid.adjList[nodeKey], grid.adjList[newCoordinate.toString()], 1);
     }
   }
 
@@ -457,8 +750,192 @@ console.log(grid.aStarSearch(grid.adjList["1,1"], grid.adjList["2,5"], function(
 
 
 
+
+
+
+
+var a = new AdjListGraphNode("a");
+var b = new AdjListGraphNode("b");
+var c = new AdjListGraphNode("c");
+
+var g = new Graph();
+
+g.addNode(a);
+g.addNode(b);
+g.addNode(c);
+
+g.addBidirectionalEdge(a, b, 1);
+g.addBidirectionalEdge(a, c, 2);
+g.addBidirectionalEdge(b, c, 5);
+
+console.log(g.primsMinimumSpanningTreeAlgorithm().adjList);
+
+
+
+var a = new AdjListGraphNode("a");
+var b = new AdjListGraphNode("b");
+var c = new AdjListGraphNode("c");
+var d = new AdjListGraphNode("d");
+
+var g = new Graph();
+
+g.addNode(a);
+g.addNode(b);
+g.addNode(c);
+g.addNode(d);
+
+g.addBidirectionalEdge(a, b, 2);
+g.addBidirectionalEdge(a, d, 1);
+g.addBidirectionalEdge(b, d, 2);
+g.addBidirectionalEdge(d, c, 3);
+
+//there can be multiple mst's for a given graph
+//the following mst returned by the function call is correct, but different from the one on the wikipedia example image
+//the following mst connects a and b instead of b and d, but both connections are of length 2 so either will work
+//changing the connection length of a and b to 3 will cause b and d to instead become part of the mst
+console.log(g.primsMinimumSpanningTreeAlgorithm().adjList);
+
+
+
+var zero = new AdjListGraphNode("zero");
+var one = new AdjListGraphNode("one");
+var two = new AdjListGraphNode("two");
+var three = new AdjListGraphNode("three");
+var four = new AdjListGraphNode("four");
+var five = new AdjListGraphNode("five");
+var six = new AdjListGraphNode("six");
+var seven = new AdjListGraphNode("seven");
+var eight = new AdjListGraphNode("eight");
+
+var g = new Graph();
+
+g.addNode(zero);
+g.addNode(one);
+g.addNode(two);
+g.addNode(three);
+g.addNode(four);
+g.addNode(five);
+g.addNode(six);
+g.addNode(seven);
+g.addNode(eight);
+
+g.addBidirectionalEdge(zero, one, 4);
+g.addBidirectionalEdge(one, two, 8);
+g.addBidirectionalEdge(two, three, 7);
+g.addBidirectionalEdge(three, four, 9);
+g.addBidirectionalEdge(four, five, 10);
+g.addBidirectionalEdge(five, six, 2);
+g.addBidirectionalEdge(six, seven, 1);
+g.addBidirectionalEdge(seven, zero, 8);
+g.addBidirectionalEdge(seven, one, 11);
+g.addBidirectionalEdge(seven, eight, 7);
+g.addBidirectionalEdge(eight, two, 2);
+g.addBidirectionalEdge(eight, six, 6);
+g.addBidirectionalEdge(two, five, 4);
+g.addBidirectionalEdge(five, three, 14);
+
+console.log(g.primsMinimumSpanningTreeAlgorithm().adjList);
+
+
+
+
+
+
+
+var frankfurt = new AdjListGraphNode("frankfurt");
+var mannheim = new AdjListGraphNode("mannheim");
+var karlsruhe = new AdjListGraphNode("karlsruhe");
+var augsburg = new AdjListGraphNode("augsburg");
+var munchen = new AdjListGraphNode("munchen");
+var kassel = new AdjListGraphNode("kassel");
+var wurzburg = new AdjListGraphNode("wurzburg");
+var stuttgart = new AdjListGraphNode("stuttgart");
+var erfurt = new AdjListGraphNode("erfurt");
+var nurnberg = new AdjListGraphNode("nurnberg");
+var unconnectedCity = new AdjListGraphNode("unconnectedCity");
+
+var g = new Graph();
+
+g.addNode(frankfurt);
+g.addNode(mannheim);
+g.addNode(karlsruhe);
+g.addNode(augsburg);
+g.addNode(munchen);
+g.addNode(kassel);
+g.addNode(wurzburg);
+g.addNode(stuttgart);
+g.addNode(erfurt);
+g.addNode(nurnberg);
+g.addNode(unconnectedCity);
+
+g.addBidirectionalEdge(frankfurt, mannheim, 85);
+g.addBidirectionalEdge(mannheim, karlsruhe, 80);
+g.addBidirectionalEdge(karlsruhe, augsburg, 250);
+g.addBidirectionalEdge(augsburg, munchen, 84);
+g.addBidirectionalEdge(munchen, kassel, 502);
+g.addBidirectionalEdge(kassel, frankfurt, 173);
+g.addBidirectionalEdge(frankfurt, wurzburg, 217);
+g.addBidirectionalEdge(wurzburg, erfurt, 186);
+g.addBidirectionalEdge(wurzburg, nurnberg, 103);
+g.addBidirectionalEdge(nurnberg, stuttgart, 183);
+g.addBidirectionalEdge(nurnberg, munchen, 167);
+
+
+//BFS should return a path (only optimal if all weights in the graph are identical) if the source can reach the destination
+
+console.log(g.breadthFirstSearch(frankfurt));
+
+console.log(g.breadthFirstSearch(frankfurt, unconnectedCity));
+
+console.log(g.breadthFirstSearch(frankfurt, frankfurt));
+
+console.log(g.breadthFirstSearch(frankfurt, mannheim));
+
+console.log(g.breadthFirstSearch(frankfurt, stuttgart));
+
+console.log(g.breadthFirstSearch(frankfurt, karlsruhe));
+
+
+//DFS should return a path if BFS with the same inputs also returns a path, but the returned paths aren't necessarily identical
+
+console.log(g.depthFirstSearch(frankfurt));
+
+console.log(g.depthFirstSearch(frankfurt, unconnectedCity));
+
+console.log(g.depthFirstSearch(frankfurt, frankfurt));
+
+console.log(g.depthFirstSearch(frankfurt, mannheim));
+
+console.log(g.depthFirstSearch(frankfurt, stuttgart));
+
+console.log(g.depthFirstSearch(frankfurt, karlsruhe));
+
+
+//IDDFS should return the same path as BFS if destination node can been found
+//  and return an object with identical properties and values if the destination node cannot be found 
+//  (properties stored in the object don't have to be stored in the same order though)
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt));
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, unconnectedCity));
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, frankfurt));
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, mannheim));
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, stuttgart));
+
+console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, karlsruhe));
+
+
+
+
+
+
+
 //ADD COMMENTS!!!
 //ADD MORE TEST CASES!!!
+//SPLIT INTO MULTIPLE FILES!!!
 
 
 
