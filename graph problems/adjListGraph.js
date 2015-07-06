@@ -241,6 +241,7 @@ Graph.prototype.removeDirectedEdge = function(srcNode, destNode) {
 };
 
 
+
 //dijkstra's algorithm for finding the shortest path between source and destination
 //if a dest node exists in the graph, then the function returns the distance and path contained in an object
 //  the distance will be infinity if the node in the graph cannot be reached
@@ -362,6 +363,7 @@ Graph.prototype.aStarSearch = function(srcNode, destNode, heuristic) {
 };
 
 
+
 //prim's algorithm for finding the minimum spanning tree of a graph
 Graph.prototype.primsMinimumSpanningTreeAlgorithm = function() {
   var mst = new Graph();
@@ -418,6 +420,7 @@ Graph.prototype.primsMinimumSpanningTreeAlgorithm = function() {
 
   return mst;
 };
+
 
 
 Graph.prototype.breadthFirstSearch = function(srcNode, destNode) {
@@ -508,6 +511,7 @@ Graph.prototype.iterativeDeepeningDepthFirstSearch = function(srcNode, destNode)
   
   var found = false; //flag to indicate if the dest node has been found
 
+  //helper function to perform dfs up to the given depth
   var graph = this;
   var depthLimitedSearch = function(maxDepth) {
 
@@ -557,7 +561,6 @@ Graph.prototype.iterativeDeepeningDepthFirstSearch = function(srcNode, destNode)
     return updated;
   };
 
-
   //keep performing DLS until nothing in prevNodeKeysToReturn gets updated
   //  if nothing in prevNodeKeysToReturn gets updated, then that means that every node in the graph has been visited
   //  and we can stop traversing the graph
@@ -589,6 +592,88 @@ Graph.prototype.iterativeDeepeningDepthFirstSearch = function(srcNode, destNode)
   }
 
 };
+
+
+
+Graph.prototype.bellmanFordAlgorithm = function(srcNode) {
+  var distances = {};
+  var prevNodeKeys = {};
+
+  var nodeKey;
+  var numNodes = 0;
+  for(nodeKey in this.adjList)
+  {
+    if(nodeKey !== srcNode.key)
+    {
+      distances[nodeKey] = Infinity;
+    }
+    else
+    {
+      distances[nodeKey] = 0;
+      prevNodeKeys[nodeKey] = undefined;
+    }
+    ++numNodes;
+  }
+
+  var q = new Queue(); //to help with traversal
+  var neighborNodeKey; 
+  var newDistance;
+  var visited;
+  for(var i = 0; i < numNodes - 1; ++i)
+  {
+    //traverse the graph
+    q.enqueue(srcNode.key); //start at the source node
+    visited = {};
+    while(q.size() > 0)
+    {
+      nodeKey = q.dequeue();
+      for(neighborNodeKey in this.adjList[nodeKey].dest)
+      {
+        //update distances
+        newDistance = distances[nodeKey] + this.adjList[nodeKey].dest[neighborNodeKey];
+        if(newDistance < distances[neighborNodeKey])
+        {
+          distances[neighborNodeKey] = newDistance;
+          prevNodeKeys[neighborNodeKey] = nodeKey;
+        }
+
+        //keep queueing until the graph is fully traversed
+        if(visited.hasOwnProperty(neighborNodeKey) === false)
+        {
+          q.enqueue(neighborNodeKey);
+          visited[neighborNodeKey] = nodeKey;
+        }
+      }
+    }
+  }
+
+  //perform one final traversal to detect negative-weight cycles
+  q.enqueue(srcNode.key);
+  visited = {};
+  while(q.size() > 0)
+  {
+    nodeKey = q.dequeue();
+    for(neighborNodeKey in this.adjList[nodeKey].dest)
+    {
+      //update distances
+      newDistance = distances[nodeKey] + this.adjList[nodeKey].dest[neighborNodeKey];
+      if(newDistance < distances[neighborNodeKey])
+      {
+        return "graph contains a negative-weight cycle";
+      }
+
+      //keep queueing until the graph is fully traversed
+      if(visited.hasOwnProperty(neighborNodeKey) === false)
+      {
+        q.enqueue(neighborNodeKey);
+        visited[neighborNodeKey] = nodeKey;
+      }
+    }
+  }
+  
+  return {distances : distances, prevNodeKeys : prevNodeKeys};
+};
+
 
 
 
@@ -926,6 +1011,93 @@ console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, mannheim));
 console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, stuttgart));
 
 console.log(g.iterativeDeepeningDepthFirstSearch(frankfurt, karlsruhe));
+
+
+
+
+
+
+
+var a = new AdjListGraphNode("a");
+var b = new AdjListGraphNode("b");
+var c = new AdjListGraphNode("c");
+var d = new AdjListGraphNode("d");
+var e = new AdjListGraphNode("e");
+
+var g = new Graph();
+
+g.addNode(a);
+g.addNode(b);
+g.addNode(c);
+g.addNode(d);
+g.addNode(e);
+
+g.addDirectedEdge(a, b, -3);
+g.addDirectedEdge(b, c, 1);
+g.addDirectedEdge(c, d, 1);
+g.addDirectedEdge(d, e, 1);
+
+console.log(g.bellmanFordAlgorithm(a));
+
+
+
+var a = new AdjListGraphNode("a");
+var b = new AdjListGraphNode("b");
+var c = new AdjListGraphNode("c");
+var d = new AdjListGraphNode("d");
+var e = new AdjListGraphNode("e");
+
+var g = new Graph();
+
+g.addNode(a);
+g.addNode(b);
+g.addNode(c);
+g.addNode(d);
+g.addNode(e);
+
+g.addDirectedEdge(a, b, -1);
+g.addDirectedEdge(b, e, 2);
+g.addDirectedEdge(e, d, -3);
+g.addDirectedEdge(d, c, 5);
+g.addDirectedEdge(a, c, 4);
+g.addDirectedEdge(b, c, 3);
+g.addDirectedEdge(b, d, 2);
+g.addDirectedEdge(d, b, 1);
+
+console.log(g.bellmanFordAlgorithm(a));
+
+
+
+var a = new AdjListGraphNode("a");
+var b = new AdjListGraphNode("b");
+var c = new AdjListGraphNode("c");
+var d = new AdjListGraphNode("d");
+var e = new AdjListGraphNode("e");
+
+var g = new Graph();
+
+g.addNode(a);
+g.addNode(b);
+g.addNode(c);
+g.addNode(d);
+g.addNode(e);
+
+g.addBidirectionalEdge(a, b, 2);
+g.addBidirectionalEdge(b, c, 1);
+g.addBidirectionalEdge(c, d, -4);
+g.addBidirectionalEdge(d, b, 2);
+g.addBidirectionalEdge(c, e, 3);
+
+console.log(g.bellmanFordAlgorithm(a));
+
+
+
+
+
+
+
+
+
 
 
 
