@@ -38,8 +38,48 @@ var lcs = function(s1, s2) {
     }
   }
 
-  return table[s1.length][s2.length];
+  var lcsString = [];
+  var i = s1.length;
+  var j = s2.length;
+  var length = table[i][j];
+  while(length > 0)
+  {
+    //go to the left if there is a matching length
+    //this means that the characters don't match at the current positions in the strings
+    if(table[i][j - 1] === length)
+    {
+      --j;
+    }
+    //go up if there is matching length
+    //this means that the characters don't match at the current positions in the strings    
+    else if(table[i - 1][j] === length)
+    {
+      --i;
+    }   
+    //otherwise, go to the upper left diagonal position
+    //this means that there is a matching character at the current positions in the strings
+    //so the character should be stored into the lcs string
+    else
+    {
+      lcsString[length - 1] = s1.charAt(i - 1);
+      --i;    
+      --j;  
+    }
+    length = table[i][j];
+  }
+
+  return lcsString.join("");
 };
 
 
-//TODO: find the lcs itself and not just the length
+console.log(lcs("a", "b") === "");
+console.log(lcs("ab", "ab") === "ab");
+console.log(lcs("ab", "abc") === "ab");
+console.log(lcs("abc", "ab") === "ab");
+console.log(lcs("abc", "acb") === "ac");
+console.log(lcs("aggtab", "gxtxyab") === "gtab");
+console.log(lcs("abcdgh", "aedfhr") === "adh");
+console.log(lcs("thisisatest", "testing123testing") === "tsitest");
+console.log(lcs("abhfdgcabfdg", "acbxkgjadblgd") === "abgadg");
+
+
