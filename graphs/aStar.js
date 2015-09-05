@@ -406,11 +406,10 @@ console.log(g.aStarSearch(x, y, function(node1) {
     "b" : 2,
     "c" : 4,
     "d" : 4.5,
-    "e" : 2,
-    "y" : 0
-  }; 
+    "e" : 2
+  };
 
-  return (testSampleHeuristicValues.hasOwnProperty(node1.value) === true) ? testSampleHeuristicValues[node1.value] : 10;
+  return (testSampleHeuristicValues.hasOwnProperty(node1.value) === true) ? testSampleHeuristicValues[node1.value] : 0;
 }));
 
 console.log("test:");
